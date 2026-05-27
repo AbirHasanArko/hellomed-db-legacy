@@ -99,6 +99,22 @@ sqlplus -s hellomed/password123 @run_all.sql
 6. `06_pkg_ambulance.sql` - PL/SQL Package for emergency dispatch.
 7. `07_seed_data.sql` - Inserts default demo data (Admins, Doctors, Medicines).
 
+### 3. Verify the Installation
+If you encounter an `ORA-01017: invalid username/password; logon denied` error when trying to log in directly, ensure you have successfully created the user via the `sysdba` account first (as shown in Step 1).
+
+Once the setup script is complete, you can verify your tables and seeded data directly from the terminal:
+
+```bash
+# Log in to the newly created schema
+sqlplus hellomed/password123@xe
+
+# Verify that all 22 tables were created successfully
+SQL> SELECT table_name FROM user_tables;
+
+# Query the seeded data (e.g., viewing inserted departments)
+SQL> SELECT * FROM departments;
+```
+
 ---
 
 ## 📊 Database Management & ER Diagrams
