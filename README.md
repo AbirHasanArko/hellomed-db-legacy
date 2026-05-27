@@ -114,13 +114,40 @@ The database schema is highly relational and divided into five logical modules f
 
 ---
 
-## ⚙️ PL/SQL Packages
+## ⚙️ PL/SQL Packages in Detail
 
-The database is designed to offload heavy business logic to the database layer itself via Packages. 
+The database is designed to offload heavy business logic to the database layer itself via Oracle PL/SQL Packages. This ensures data integrity, reduces application round trips, and encapsulates critical workflows inside the database engine.
 
-- **`pkg_appointments`**: Contains logic to prevent double-booking, verify doctor availability, and generate digital prescription records in a single transaction.
-- **`pkg_pharmacy`**: Safely manages inventory decrements when an order is placed, preventing race conditions via Row-Level Locking (`FOR UPDATE`).
-- **`pkg_users`**: Manages secure access and role verification.
+The following packages are defined and utilized by the system:
+
+### 1. `pkg_users` (`03_pkg_users.sql`)
+Manages secure access and core user lifecycles.
+- **`register_user`**: Securely inserts a new user record, defaulting the role to 'patient' if none is provided, and returns the newly generated auto-incrementing ID using `RETURNING INTO`.
+- **`update_role`**: Allows administrators to elevate a user's privileges (e.g., from 'patient' to 'staff' or 'doctor').
+- **`deactivate_user`**: Performs a soft-delete by setting the `is_active` flag to `0` instead of physically removing the record.
+
+### 2. `pkg_appointments` (`04_pkg_appointments.sql`)
+Encapsulates the workflow of scheduling and managing patient-doctor consultations.
+- **`book_appointment`**: Inserts a new pending appointment record, linking the patient, doctor, department, and service in a single transaction.
+- **`update_status`**: Transitions an appointment through its lifecycle (`pending` -> `confirmed` -> `completed` -> `cancelled`).
+- **`attach_meeting_link`**: Updates an existing online appointment with a secure meeting URL prior to the consultation.
+
+### 3. `pkg_pharmacy` (`05_pkg_pharmacy.sql`)
+A robust e-commerce and inventory engine built entirely in PL/SQL.
+- **`create_order`**: Generates a unique, timestamped `order_number` (e.g., `ORD-20231024145532-123`) and initializes a pending order.
+- **`add_order_item`**: A highly transactional procedure that:
+  1. Fetches the current price of a medicine from the catalog.
+  2. Calculates the `line_total` (price * quantity).
+  3. Inserts the line item into `medicine_order_items`.
+  4. Automatically rolls up and updates the `total_amount` in the parent `medicine_orders` table.
+  5. Safely decrements the `stock_quantity` in the `medicines` inventory table to prevent overselling.
+- **`update_order_status`**: Transitions the order through fulfillment stages.
+
+### 4. `pkg_ambulance` (`06_pkg_ambulance.sql`)
+Handles the real-time emergency dispatch workflow.
+- **`request_ambulance`**: Logs an incoming public emergency request with patient details and location.
+- **`dispatch_ambulance`**: Updates the request status to `dispatched`, assigns a specific internal `staff_id`, and timestamps the dispatch event (`SYSTIMESTAMP`).
+- **`resolve_request`**: Closes the loop by marking the incident as `resolved` with a final timestamp.
 
 ---
 
