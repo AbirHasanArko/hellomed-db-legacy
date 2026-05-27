@@ -167,6 +167,18 @@ Handles the real-time emergency dispatch workflow.
 
 ---
 
+## 🔐 Legacy Database Design Patterns
+
+Because this schema was originally designed around Oracle 11g compatibility (where `IDENTITY` columns were not natively supported), it relies heavily on classic, battle-tested Oracle design patterns:
+
+- **Auto-Incrementing Primary Keys:** Every table is paired with a corresponding `SEQUENCE` (e.g., `users_seq`) and a `BEFORE INSERT` trigger (`users_trg`). The trigger automatically fetches `NEXTVAL` if no ID is provided, seamlessly simulating `AUTO_INCREMENT`.
+- **Timestamp Management:** The same triggers automatically inject `SYSTIMESTAMP` into the `created_at` and `updated_at` columns on row insertion, and update `updated_at` during row modification.
+- **Large Objects (LOBs):** Data that naturally exceeds standard string lengths—such as blog article bodies, deep JSON notification payloads, and rich medical prescriptions—are stored as `CLOB` (Character Large Object) types.
+- **Soft Deletes & State Constraints:** Instead of physically deleting vital records, tables like `users` and `departments` rely on an `is_active NUMBER(1)` column enforced by `CHECK (is_active IN (0, 1))` constraints.
+- **Referential Integrity:** Strict parent-child relationships are managed via `ON DELETE CASCADE` (e.g., deleting a doctor removes their reviews) and `ON DELETE SET NULL` (e.g., deleting a doctor keeps the appointment record but sets the assigned doctor to `NULL`).
+
+---
+
 ## 🛠 Troubleshooting
 
 - **ORA-00955: name is already used by an existing object**
